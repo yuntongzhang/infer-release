@@ -24,7 +24,8 @@ PATCH=${PATCH:-patch}
 STRIP=${STRIP:-strip}
 
 NCPUS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)"
-JOBS="${JOBS:-$(($NCPUS>=8?$NCPUS/4:2))}"
+# JOBS="${JOBS:-$(($NCPUS>=8?$NCPUS/4:2))}"
+JOBS=4
 
 SHASUM=${SHASUM:-shasum -a 256}
 
