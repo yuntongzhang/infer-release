@@ -481,6 +481,8 @@ val project_root : string
 
 val pulse_cut_to_one_path_procedures_pattern : Str.regexp option
 
+val pulse_skip_procedures : Str.regexp option
+
 val pulse_intraprocedural_only : bool
 
 val pulse_isl : bool

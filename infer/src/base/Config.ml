@@ -1966,6 +1966,10 @@ and pulse_cut_to_one_path_procedures_pattern =
     "Regex of methods for which pulse will only explore one path. Can be used on pathologically \
      large procedures to prevent too-big states from being produced."
 
+and pulse_skip_procedures =
+  CLOpt.mk_string_opt ~long:"pulse-skip-procedures"
+    ~in_help:InferCommand.[(Analyze, manual_generic)]
+    ~meta:"regex" "Regex of procedures that should not be analyzed by Pulse."
 
 and pulse_intraprocedural_only =
   CLOpt.mk_bool ~long:"pulse-intraprocedural-only"
@@ -3230,6 +3234,7 @@ and project_root = !project_root
 and pulse_cut_to_one_path_procedures_pattern =
   Option.map ~f:Str.regexp !pulse_cut_to_one_path_procedures_pattern
 
+and pulse_skip_procedures = Option.map ~f:Str.regexp !pulse_skip_procedures
 
 and pulse_intraprocedural_only = !pulse_intraprocedural_only
 

@@ -419,18 +419,27 @@ let with_debug_exit_node proc_desc ~f =
     ~f
 
 
+let should_analyze proc_desc =
+  let proc_name = Procdesc.get_proc_name proc_desc in
+  let proc_id = Procname.to_unique_id proc_name in
+  let f regex = not (Str.string_match regex proc_id 0) in
+  Option.value_map Config.pulse_skip_procedures ~f ~default:true
+
+
 let checker ({InterproceduralAnalysis.tenv; proc_desc; err_log} as analysis_data) =
-  AbstractValue.State.reset () ;
-  let initial_astate = ExecutionDomain.mk_initial tenv proc_desc in
-  let initial = [initial_astate] in
-  match DisjunctiveAnalyzer.compute_post analysis_data ~initial proc_desc with
-  | Some posts ->
-      with_debug_exit_node proc_desc ~f:(fun () ->
-          let updated_posts =
-            PulseObjectiveCSummary.update_objc_method_posts analysis_data ~initial_astate ~posts
-          in
-          let summary = PulseSummary.of_posts tenv proc_desc err_log updated_posts in
-          report_topl_errors proc_desc err_log summary ;
-          Some summary )
-  | None ->
-      None
+  if should_analyze proc_desc then (
+    AbstractValue.State.reset () ;
+    let initial_astate = ExecutionDomain.mk_initial tenv proc_desc in
+    let initial = [initial_astate] in
+    match DisjunctiveAnalyzer.compute_post analysis_data ~initial proc_desc with
+    | Some posts ->
+        with_debug_exit_node proc_desc ~f:(fun () ->
+            let updated_posts =
+              PulseObjectiveCSummary.update_objc_method_posts analysis_data ~initial_astate ~posts
+            in
+            let summary = PulseSummary.of_posts tenv proc_desc err_log updated_posts in
+            report_topl_errors proc_desc err_log summary ;
+            Some summary )
+    | None ->
+        None)
+  else None
