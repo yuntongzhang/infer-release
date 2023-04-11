@@ -34,7 +34,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends
     cmake \
     clang \
     python \
-    python3-distutils
+    python3-distutils \
+    libmpfr-dev
 
 # get release version source code
 WORKDIR /opt/
