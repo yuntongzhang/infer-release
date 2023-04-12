@@ -12,6 +12,7 @@ module BaseAddressAttributes = PulseBaseAddressAttributes
 module BaseDomain = PulseBaseDomain
 module BaseMemory = PulseBaseMemory
 module BaseStack = PulseBaseStack
+module FullTrace = PulseFullTrace
 
 (** Layer on top of {!BaseDomain} to propagate operations on the current state to the pre-condition
     when necessary
@@ -64,8 +65,9 @@ type t = private
   ; topl: PulseTopl.state
         (** state at of the Topl monitor at the current program point, when Topl is enabled *)
   ; skipped_calls: SkippedCalls.t  (** metadata: procedure calls for which no summary was found *)
+  ; full_trace: FullTrace.t  (** full trace of each executed line number *)
   }
-[@@deriving equal]
+[@@deriving equal, yojson_of]
 
 val leq : lhs:t -> rhs:t -> bool
 
@@ -175,6 +177,9 @@ val discard_unreachable : t -> t * AbstractValue.Set.t * AbstractValue.t list
 (** garbage collect unreachable addresses in the state to make it smaller and return the new state,
     the live addresses, and the discarded addresses that used to have attributes attached *)
 
+val add_new_trace_loc : t -> Location.t -> t
+(** Add a new location to the full trace of this domain. *)
+        
 val add_skipped_call : Procname.t -> Trace.t -> t -> t
 
 val add_skipped_calls : SkippedCalls.t -> t -> t
@@ -194,6 +199,8 @@ val summary_of_post :
      SatUnsat.t
 (** trim the state down to just the procedure's interface (formals and globals), and simplify and
     normalize the state *)
+
+val get_last_line_in_trace: summary -> int
 
 val set_post_edges : AbstractValue.t -> BaseMemory.Edges.t -> t -> t
 (** directly set the edges for the given address, bypassing abduction altogether *)

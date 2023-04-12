@@ -14,7 +14,7 @@ type 'abductive_domain_t base_t =
   | ContinueProgram of 'abductive_domain_t  (** represents the state at the program point *)
   | ExitProgram of AbductiveDomain.summary
       (** represents the state originating at exit/divergence. *)
-  | AbortProgram of AbductiveDomain.summary
+  | AbortProgram of {astate: AbductiveDomain.summary; error_trace_start: Location.t}
       (** represents the state at the program point that caused an error *)
   | LatentAbortProgram of {astate: AbductiveDomain.summary; latent_issue: LatentIssue.t}
       (** this path leads to an error but we don't have conclusive enough data to report it yet *)
@@ -41,3 +41,5 @@ val is_unsat_cheap : t -> bool
 (** see {!PulsePathCondition.is_unsat_cheap} *)
 
 type summary = AbductiveDomain.summary base_t [@@deriving compare, equal, yojson_of]
+
+val add_new_trace_loc : AbductiveDomain.t base_t -> Location.t -> AbductiveDomain.t base_t

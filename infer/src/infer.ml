@@ -15,8 +15,10 @@ module L = Logging
 let run driver_mode =
   let open Driver in
   run_prologue driver_mode ;
-  let changed_files = read_config_changed_files () in
-  InferAnalyze.invalidate_changed_procedures changed_files ;
+  (** First decide the changed file and invalidate changed procedures based on --pulse-fix-mode.
+    If not in fix mode, do these two parts based on original Infer workflow. *)
+  let changed_files = SourceFile.read_fix_file_and_changed_file in
+  InferAnalyze.invalidate_procedures_top_level changed_files ;
   capture driver_mode ~changed_files ;
   analyze_and_report driver_mode ~changed_files ;
   run_epilogue ()
@@ -50,7 +52,7 @@ let setup () =
              ( Driver.is_analyze_mode driver_mode
              || Config.(
                   continue_capture || infer_is_clang || infer_is_javac || reactive_mode
-                  || incremental_analysis) )
+                  || incremental_analysis || pulse_fix_mode ) )
       then ResultsDir.remove_results_dir () ;
       ResultsDir.create_results_dir () ;
       if

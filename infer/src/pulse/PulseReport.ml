@@ -92,11 +92,16 @@ let report_summary_error tenv proc_desc err_log
   | ISLError astate ->
       ISLLatentMemoryError astate
   | ReportableError {astate; diagnostic} -> (
+    let error_trace = Diagnostic.get_trace diagnostic in
+    let error_trace_start = match error_trace with
+      | hd :: _ -> hd.lt_loc
+      | [] -> Location.dummy
+    in
     match LatentIssue.should_report astate diagnostic with
     | `ReportNow ->
         if not (is_suppressed tenv proc_desc diagnostic astate) then
           report proc_desc err_log diagnostic ;
-        AbortProgram astate
+          AbortProgram {astate; error_trace_start}
     | `DelayReport latent_issue ->
         if Config.pulse_report_latent_issues then report_latent_issue proc_desc err_log latent_issue ;
         LatentAbortProgram {astate; latent_issue} )

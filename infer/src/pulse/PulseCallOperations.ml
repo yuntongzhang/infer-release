@@ -109,7 +109,7 @@ let apply_callee tenv ~caller_proc_desc callee_pname call_loc callee_exec_state 
   | ContinueProgram astate ->
       map_call_result ~is_isl_error_prepost:false astate ~f:(fun _subst astate ->
           Sat (Ok (ContinueProgram astate)) )
-  | AbortProgram astate
+  | AbortProgram {astate}
   | ExitProgram astate
   | LatentAbortProgram {astate}
   | LatentInvalidAccess {astate} ->
@@ -127,8 +127,8 @@ let apply_callee tenv ~caller_proc_desc callee_pname call_loc callee_exec_state 
             match callee_exec_state with
             | ContinueProgram _ | ISLLatentMemoryError _ ->
                 assert false
-            | AbortProgram _ ->
-                Sat (Ok (AbortProgram astate_summary))
+            | AbortProgram {error_trace_start} ->
+                Sat (Ok (AbortProgram {astate=astate_summary; error_trace_start}))
             | ExitProgram _ ->
                 Sat (Ok (ExitProgram astate_summary))
             | LatentAbortProgram {latent_issue} -> (

@@ -10,6 +10,7 @@ module F = Format
 module L = Logging
 open PulseBasicInterface
 open PulseDomainInterface
+module SummaryPost = PulseSummaryPost
 
 type t = ExecutionDomain.summary list [@@deriving yojson_of]
 

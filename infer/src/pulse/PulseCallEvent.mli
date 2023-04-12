@@ -12,8 +12,8 @@ type t =
   | Call of Procname.t  (** known function with summary *)
   | Model of string  (** hardcoded model *)
   | SkippedKnownCall of Procname.t  (** known function without summary *)
-  | SkippedUnknownCall of Exp.t  (** couldn't link the expression to a proc name *)
-[@@deriving compare, equal]
+  | SkippedUnknownCall of (Exp.t [@yojson.opaque])  (** couldn't link the expression to a proc name *)
+[@@deriving compare, equal, yojson_of]
 
 val pp : F.formatter -> t -> unit
 

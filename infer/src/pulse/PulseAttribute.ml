@@ -38,7 +38,7 @@ module Attribute = struct
     | StdVectorReserve
     | Uninitialized
     | WrittenTo of Trace.t
-  [@@deriving compare, variants]
+  [@@deriving compare, variants, yojson_of]
 
   let equal = [%compare.equal: t]
 
@@ -137,6 +137,8 @@ end
 
 module Attributes = struct
   module Set = PrettyPrintable.MakePPUniqRankSet (Int) (Attribute)
+
+  let yojson_of_t m = [%yojson_of: Attribute.t list] (Set.elements m)
 
   let get_invalid attrs =
     Set.find_rank attrs Attribute.invalid_rank

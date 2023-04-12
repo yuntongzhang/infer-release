@@ -396,8 +396,10 @@ module PulseTransferFunctions = struct
   let exec_instr astate analysis_data cfg_node instr =
     (* Sometimes instead of stopping on contradictions a false path condition is recorded
        instead. Prune these early here so they don't spuriously count towards the disjunct limit. *)
-    exec_instr_aux astate analysis_data cfg_node instr
-    |> List.filter ~f:(fun exec_state -> not (Domain.is_unsat_cheap exec_state))
+    let astates = exec_instr_aux astate analysis_data cfg_node instr in
+    let location = Sil.location_of_instr instr in
+    let astates = List.map astates ~f:(fun exec_state -> Domain.add_new_trace_loc exec_state location) in
+    List.filter astates ~f:(fun exec_state -> not (Domain.is_unsat_cheap exec_state))
 
 
   let pp_session_name _node fmt = F.pp_print_string fmt "Pulse"

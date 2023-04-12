@@ -12,13 +12,15 @@ type t =
   { line: int  (** The line number. -1 means "do not know" *)
   ; col: int  (** The column number. -1 means "do not know" *)
   ; file: SourceFile.t  (** The name of the source file *) }
-[@@deriving compare]
+[@@deriving compare, yojson_of]
 
 let equal = [%compare.equal: t]
 
 let none file = {line= -1; col= -1; file}
 
 let dummy = none (SourceFile.invalid __FILE__)
+
+let is_dummy {file} = SourceFile.is_invalid file
 
 let pp_line f loc = F.fprintf f "line %d" loc.line
 

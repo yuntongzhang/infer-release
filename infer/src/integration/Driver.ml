@@ -245,6 +245,7 @@ let analyze_and_report ?suppress_console_report ~changed_files mode =
     | (Analyze | AnalyzeJson | Run), _ ->
         (true, true)
   in
+  let should_report = should_report && not (Config.pulse_fix_mode) in
   let should_analyze = should_analyze && Config.capture in
   let should_merge =
     match mode with

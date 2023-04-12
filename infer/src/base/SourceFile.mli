@@ -7,7 +7,7 @@
 
 open! IStd
 
-type t [@@deriving compare]
+type t [@@deriving compare, yojson_of]
 
 (** Maps from source_file *)
 module Map : Caml.Map.S with type key = t
@@ -23,6 +23,9 @@ val is_invalid : t -> bool
 val changed_sources_from_changed_files : string list -> Set.t
 (** Set of files read from --changed-files-index file, None if option not specified NOTE: it may
     include extra source_files if --changed-files-index contains paths to header files *)
+
+val read_fix_file_and_changed_file : Set.t option
+(** First attempt to read value from --pulse-fix-file, then read from changed-file-index if failed.*)
 
 val invalid : string -> t
 (** Invalid source file *)

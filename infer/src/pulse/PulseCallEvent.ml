@@ -11,8 +11,8 @@ type t =
   | Call of Procname.t
   | Model of string
   | SkippedKnownCall of Procname.t
-  | SkippedUnknownCall of Exp.t
-[@@deriving compare, equal]
+  | SkippedUnknownCall of (Exp.t [@yojson.opaque])
+[@@deriving compare, equal, yojson_of]
 
 let pp_config ~verbose fmt =
   let pp_proc_name = if verbose then Procname.pp else Procname.describe in

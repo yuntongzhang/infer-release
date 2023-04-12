@@ -25,7 +25,7 @@ type t =
   | StdVectorReserve
   | Uninitialized
   | WrittenTo of Trace.t
-[@@deriving compare]
+[@@deriving compare, yojson_of]
 
 val pp : F.formatter -> t -> unit
 
@@ -38,6 +38,8 @@ val map_trace : f:(Trace.t -> Trace.t) -> t -> t
 
 module Attributes : sig
   include PrettyPrintable.PPUniqRankSet with type elt = t
+
+  val yojson_of_t : t -> Yojson.Safe.t
 
   val get_address_of_stack_variable : t -> (Var.t * Location.t * ValueHistory.t) option
 

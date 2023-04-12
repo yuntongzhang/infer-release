@@ -1966,6 +1966,24 @@ and pulse_cut_to_one_path_procedures_pattern =
     "Regex of methods for which pulse will only explore one path. Can be used on pathologically \
      large procedures to prevent too-big states from being produced."
 
+
+and pulse_fix_file =
+CLOpt.mk_string_opt ~long:"pulse-fix-file"
+  ~in_help:InferCommand.[(Analyze, manual_generic)]
+  "File in which a fix should be applied. Should be used together with $(b, --pulse-fix-function)."
+
+
+and pulse_fix_function =
+CLOpt.mk_string_opt ~long:"pulse-fix-function"
+  ~in_help:InferCommand.[(Analyze, manual_generic)]
+  "Function in which a fix should be applied. Should be used together with $(b, --pulse-fix-file)."
+
+
+and pulse_fix_mode =
+CLOpt.mk_bool ~long:"pulse-fix-mode" ~default:false
+  "Enable fix mode for Pulse. Need also $(b, --pulse-fix-file) and $(b, --pulse-fix-function)."
+
+
 and pulse_skip_procedures =
   CLOpt.mk_string_opt ~long:"pulse-skip-procedures"
     ~in_help:InferCommand.[(Analyze, manual_generic)]
@@ -3233,6 +3251,12 @@ and project_root = !project_root
 
 and pulse_cut_to_one_path_procedures_pattern =
   Option.map ~f:Str.regexp !pulse_cut_to_one_path_procedures_pattern
+
+and pulse_fix_mode = !pulse_fix_mode
+
+and pulse_fix_file = !pulse_fix_file
+
+and pulse_fix_function = !pulse_fix_function
 
 and pulse_skip_procedures = Option.map ~f:Str.regexp !pulse_skip_procedures
 

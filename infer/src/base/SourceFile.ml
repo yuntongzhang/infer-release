@@ -18,7 +18,7 @@ type t =
             (** path relative to the workspace of the project root with respect to which the source
                 file was captured *)
       ; rel_path: string  (** path of the source file relative to the project root *) }
-[@@deriving compare, equal]
+[@@deriving compare, equal, yojson_of]
 
 module OrderedSourceFile = struct
   type nonrec t = t [@@deriving compare]
@@ -288,3 +288,37 @@ module Normalizer = HashNormalizer.Make (struct
         let path' = string_normalize path in
         if phys_equal path path' then fname else Absolute path'
 end)
+
+
+let read_config_changed_files =
+  let result =
+    lazy
+      ( match Config.changed_files_index with
+      | None ->
+          None
+      | Some index -> (
+        match Utils.read_file index with
+        | Ok lines ->
+            Some (changed_sources_from_changed_files lines)
+        | Error error ->
+            L.external_error "Error reading the changed files index '%s': %s@." index error ;
+            None ) )
+  in
+  fun () -> Lazy.force result
+
+
+let read_config_pulse_fix_file =
+  match Config.pulse_fix_file with
+  | None -> None
+  | Some file -> (
+      let sf = create file in
+      let init_set = Set.empty in
+      Some (Set.add sf init_set)
+  )
+
+
+let read_fix_file_and_changed_file =
+  if Config.pulse_fix_mode then
+    read_config_pulse_fix_file
+  else
+    read_config_changed_files ()

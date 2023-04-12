@@ -14,6 +14,7 @@ module BaseStack = PulseBaseStack
 module BaseMemory = PulseBaseMemory
 module BaseAddressAttributes = PulseBaseAddressAttributes
 module UninitBlocklist = PulseUninitBlocklist
+module FullTrace = PulseFullTrace
 
 (** signature common to the "normal" [Domain], representing the post at the current program point,
     and the inverted [PreDomain], representing the inferred pre-condition*)
@@ -95,12 +96,14 @@ type t =
   ; pre: PreDomain.t
   ; path_condition: PathCondition.t
   ; topl: (PulseTopl.state[@yojson.opaque])
-  ; skipped_calls: SkippedCalls.t }
+  ; skipped_calls: SkippedCalls.t
+  ; full_trace: FullTrace.t }
 [@@deriving compare, equal, yojson_of]
 
-let pp f {post; pre; topl; path_condition; skipped_calls} =
-  F.fprintf f "@[<v>%a@;%a@;PRE=[%a]@;skipped_calls=%a@;Topl=%a@]" PathCondition.pp path_condition
+let pp f {post; pre; topl; path_condition; skipped_calls; full_trace} =
+  F.fprintf f "@[<v>%a@;%a@;PRE=[%a]@;skipped_calls=%a@;Topl=%a@;full_trace=%a@]" PathCondition.pp path_condition
     PostDomain.pp post PreDomain.pp pre SkippedCalls.pp skipped_calls PulseTopl.pp_state topl
+    FullTrace.pp full_trace
 
 
 let set_path_condition path_condition astate = {astate with path_condition}
@@ -181,7 +184,8 @@ module Stack = struct
           ; pre
           ; topl= astate.topl
           ; skipped_calls= astate.skipped_calls
-          ; path_condition= astate.path_condition }
+          ; path_condition= astate.path_condition 
+          ; full_trace= astate.full_trace }
         , addr_hist )
 
 
@@ -428,7 +432,8 @@ module Memory = struct
           ; pre= PreDomain.update astate.pre ~heap:foot_heap
           ; topl= astate.topl
           ; skipped_calls= astate.skipped_calls
-          ; path_condition= astate.path_condition }
+          ; path_condition= astate.path_condition 
+          ; full_trace= astate.full_trace }
         , addr_hist_dst )
 
 
@@ -563,7 +568,14 @@ let mk_initial tenv proc_desc =
   ; post
   ; topl= PulseTopl.start ()
   ; skipped_calls= SkippedCalls.empty
-  ; path_condition= PathCondition.true_ }
+  ; path_condition= PathCondition.true_ 
+  ; full_trace= (FullTrace.initialize location) }
+
+
+let add_new_trace_loc astate location =
+  let old_trace = astate.full_trace in
+  let new_trace = FullTrace.add_next_loc old_trace location in
+  { astate with full_trace=new_trace }
 
 
 let add_skipped_call pname trace astate =
@@ -810,6 +822,11 @@ let summary_of_post tenv pdesc astate =
   | Some (address, must_be_valid) ->
       Error (`PotentialInvalidAccessSummary (astate, address, must_be_valid))
 
+
+let get_last_line_in_trace abductive_summary =
+  let trace = abductive_summary.full_trace in
+  let line_num = FullTrace.get_last_loc trace in
+  Option.value line_num ~default:0
 
 let get_pre {pre} = (pre :> BaseDomain.t)
 

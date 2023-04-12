@@ -162,7 +162,7 @@ let extract_impurity tenv pname formals (exec_state : ExecutionDomain.t) : Impur
         ((astate :> AbductiveDomain.t), true)
     | ContinueProgram astate ->
         (astate, false)
-    | AbortProgram astate
+    | AbortProgram {astate}
     | LatentAbortProgram {astate}
     | LatentInvalidAccess {astate}
     | ISLLatentMemoryError astate ->

@@ -147,8 +147,55 @@ let tasks_generator_builder_for sources =
         SyntacticCallGraph.make sources
 
 
+(** Helper: Find Procname in the fix file, whose name matches Config.pulse_fix_function. *)
+let pulse_get_fix_proc_name fix_file =
+  let rec find_proc proc_lst name_str = match proc_lst with
+    | [] -> L.die InternalError "Fix func is not found in the fix file"
+    | hd::tl -> (
+        if String.equal (Procname.get_method hd) name_str then hd
+        else find_proc tl name_str
+    )
+  in
+  let fix_func_str = match Config.pulse_fix_function with
+    | None -> L.die InternalError "In fix mode, but no fix function specified"
+    | Some f -> f
+  in
+  let sf_procs = SourceFiles.proc_names_of_source fix_file in
+  let fix_func_procname = find_proc sf_procs fix_func_str in
+  fix_func_procname
+
+
+(** Helper: Take out the only SourceFile from the SourceFile Set. *)
+let pulse_get_only_file_from_file_set changed_files =
+  let changed_files =
+    match changed_files with
+    | Some cf ->
+        cf
+    | None ->
+        L.die InternalError "In fix mode, but no fix file specified"
+  in
+  let fix_file = match SourceFile.Set.elements changed_files with
+      | [] -> L.die InternalError "In fix mode, but no fix file specified"
+      | hd :: _ -> hd
+  in
+  fix_file
+
+
 let analyze source_files_to_analyze =
-  if Int.equal Config.jobs 1 then (
+  if Config.pulse_fix_mode then (
+    (* Special rountine for fix mode. Here, only 1 func needs to be analyzed. *)
+    let fix_file = match Lazy.force (source_files_to_analyze) with
+      | []      -> L.die InternalError "In fix mode, but fix file not specified"
+      | hd :: _ -> hd
+    in
+    let fix_func_procname = pulse_get_fix_proc_name fix_file in
+    let fix_func_target = TaskSchedulerTypes.Procname fix_func_procname in
+    (* Really running. *)
+    let pre_analysis_gc_stats = GCStats.get ~since:ProgramStart in
+    Tasks.run_sequentially ~f:analyze_target [ fix_func_target ] ;
+    ([BackendStats.get ()], [GCStats.get ~since:(PreviousStats pre_analysis_gc_stats)])
+  )
+  else if Int.equal Config.jobs 1 then (
     let target_files =
       List.rev_map (Lazy.force source_files_to_analyze) ~f:(fun sf -> TaskSchedulerTypes.File sf)
     in
@@ -250,6 +297,25 @@ let invalidate_changed_procedures changed_files =
     ResultsDir.scrub_for_incremental () )
 
 
+let invalidate_procedure_fix_mode fix_file =
+  let fix_func_procname = pulse_get_fix_proc_name fix_file in
+  L.progress "Fix mode: Invalidating fix func %a @\n" Procname.pp fix_func_procname ;
+  (* Really invalidating *)
+  Ondemand.LocalCache.remove fix_func_procname ;
+  Summary.OnDisk.delete fix_func_procname ;
+  ResultsDir.scrub_for_fix_mode ()
+
+
+let invalidate_procedures_top_level changed_files =
+  if Config.pulse_fix_mode then (
+    let fix_file = pulse_get_only_file_from_file_set changed_files
+    in
+    invalidate_procedure_fix_mode fix_file
+  )
+  (* Not fix mode => do whatever Infer was doing before *)
+  else invalidate_changed_procedures changed_files
+
+    
 let main ~changed_files =
   let start = ExecutionDuration.counter () in
   register_active_checkers () ;
@@ -258,7 +324,7 @@ let main ~changed_files =
       L.progress "Invalidating procedures to be reanalyzed@." ;
       Summary.OnDisk.reset_all ~filter:(Lazy.force Filtering.procedures_filter) () ;
       L.progress "Done@." )
-    else if not Config.incremental_analysis then DBWriter.delete_all_specs () ;
+    else if not (Config.incremental_analysis || Config.pulse_fix_mode) then DBWriter.delete_all_specs () ;
   let source_files = lazy (get_source_files_to_analyze ~changed_files) in
   (* empty all caches to minimize the process heap to have less work to do when forking *)
   clear_caches () ;

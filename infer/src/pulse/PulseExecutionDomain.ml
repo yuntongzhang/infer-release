@@ -18,7 +18,7 @@ module LatentIssue = PulseLatentIssue
 type 'abductive_domain_t base_t =
   | ContinueProgram of 'abductive_domain_t
   | ExitProgram of AbductiveDomain.summary
-  | AbortProgram of AbductiveDomain.summary
+  | AbortProgram of {astate: AbductiveDomain.summary; error_trace_start: Location.t}
   | LatentAbortProgram of {astate: AbductiveDomain.summary; latent_issue: LatentIssue.t}
   | LatentInvalidAccess of
       { astate: AbductiveDomain.summary
@@ -38,7 +38,7 @@ let leq ~lhs ~rhs =
   phys_equal lhs rhs
   ||
   match (lhs, rhs) with
-  | AbortProgram astate1, AbortProgram astate2
+  | AbortProgram {astate=astate1}, AbortProgram {astate=astate2}
   | ExitProgram astate1, ExitProgram astate2
   | ISLLatentMemoryError astate1, ISLLatentMemoryError astate2 ->
       AbductiveDomain.leq ~lhs:(astate1 :> AbductiveDomain.t) ~rhs:(astate2 :> AbductiveDomain.t)
@@ -57,7 +57,7 @@ let leq ~lhs ~rhs =
 
 
 let pp fmt = function
-  | AbortProgram astate ->
+  | AbortProgram {astate} ->
       F.fprintf fmt "{AbortProgram %a}" AbductiveDomain.pp (astate :> AbductiveDomain.t)
   | ContinueProgram astate ->
       AbductiveDomain.pp fmt astate
@@ -83,7 +83,7 @@ let get_astate : t -> AbductiveDomain.t = function
   | ContinueProgram astate ->
       astate
   | ExitProgram astate
-  | AbortProgram astate
+  | AbortProgram {astate}
   | LatentAbortProgram {astate}
   | LatentInvalidAccess {astate}
   | ISLLatentMemoryError astate ->
@@ -93,3 +93,11 @@ let get_astate : t -> AbductiveDomain.t = function
 let is_unsat_cheap exec_state = PathCondition.is_unsat_cheap (get_astate exec_state).path_condition
 
 type summary = AbductiveDomain.summary base_t [@@deriving compare, equal, yojson_of]
+
+let add_new_trace_loc exec_state location =
+  match exec_state with
+  | ContinueProgram astate ->
+      let new_astate = AbductiveDomain.add_new_trace_loc astate location in
+      ContinueProgram new_astate
+  (** For state where summary is already extracted, there is no need to record exec trace anymore. *)
+  | _ -> exec_state

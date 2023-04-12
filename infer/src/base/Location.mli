@@ -12,7 +12,7 @@ type t =
   { line: int  (** The line number. -1 means "do not know" *)
   ; col: int  (** The column number. -1 means "do not know" *)
   ; file: SourceFile.t  (** The name of the source file *) }
-[@@deriving compare]
+[@@deriving compare, yojson_of]
 
 val equal : t -> t -> bool
 
@@ -21,6 +21,8 @@ val none : SourceFile.t -> t
 
 val dummy : t
 (** Dummy location with no source file *)
+
+val is_dummy : t -> bool
 
 val pp : Format.formatter -> t -> unit
 (** Pretty print a location. *)

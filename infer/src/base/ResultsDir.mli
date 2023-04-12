@@ -35,6 +35,9 @@ val create_results_dir : unit -> unit
 val scrub_for_incremental : unit -> unit
 (** scrub capture data in preparation of an incremental capture + analysis *)
 
+val scrub_for_fix_mode : unit -> unit
+(** Scrub only things in the result dir. Do not touch DB. *)
+
 val scrub_for_caching : unit -> unit
 (** Clean up the results dir to keep only what's relevant to go in a cache (e.g., the distributed
     Buck cache). In particular, get rid of non-deterministic outputs.*)

@@ -16,3 +16,6 @@ val register_active_checkers : unit -> unit
 
 val invalidate_changed_procedures : SourceFile.Set.t option -> unit
 (** Invalidate specs files for procedures that have changed. Used for incremental analysis. *)
+
+val invalidate_procedures_top_level : SourceFile.Set.t option -> unit
+(** Top-level wrapper for both fix mode and normal mode. *)
