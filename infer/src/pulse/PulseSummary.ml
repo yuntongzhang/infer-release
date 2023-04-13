@@ -39,10 +39,8 @@ let exec_summary_of_post_common tenv ~continue_program proc_desc err_log
         |> Option.bind ~f:(fun (_, attrs) -> Attributes.get_invalid attrs)
       with
       | None ->
-          let summary = LatentInvalidAccess {astate; address; must_be_valid; calling_context= []} in
-          let trace, _ = must_be_valid in
-          let trace_start_line = (Trace.get_start_location trace).line in
-          Some (summary, SummaryLabelled.LatentInvalidAccess trace_start_line)
+          let trace_start_line = (Trace.get_start_location must_be_valid).line in
+          Some (LatentInvalidAccess {astate; address; must_be_valid; calling_context= []}, SummaryLabelled.LatentInvalidAccess trace_start_line)
       | Some (invalidation, invalidation_trace) ->
           let summary = PulseReport.report_summary_error tenv proc_desc err_log
             (ReportableError
