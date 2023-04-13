@@ -11,18 +11,14 @@ type label =
  | LatentAbortProgram of int
  | LatentInvalidAccess of int
  | ISLLatentMemoryError of int
- | ErrorRetainCycle
- | ErrorMemoryLeak of int
- | ErrorResourceLeak
  | ErrorInvalidAccess of int
- | ErrorException
  | ErrorOthers
  [@@deriving yojson_of]
 
-type summary_post = (label * (AbductiveDomain.summary) option) [@@deriving yojson_of]
+type summary_labelled = (label * (AbductiveDomain.summary) option) [@@deriving yojson_of]
 
-type t = summary_post list [@@deriving yojson_of]
+type t = summary_labelled list [@@deriving yojson_of]
 
-val from_lists_of_summaries : 
-    (AbductiveDomain.summary ExecutionDomain.base_t * label) option list
+val from_lists_of_summary_label_pairs : 
+    (AbductiveDomain.summary ExecutionDomain.base_t * label) list
     ->  t
