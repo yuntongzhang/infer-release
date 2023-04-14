@@ -232,6 +232,51 @@ module C = struct
   let malloc_not_null size_exp = malloc_not_null_common ~size_exp_opt:(Some size_exp)
 
   let malloc_not_null_no_param = malloc_not_null_common ~size_exp_opt:None
+
+
+  let calloc _n size = 
+    let ikind = Typ.IUInt in
+    let size_expr = Exp.BinOp (Binop.Mult (Some ikind), _n, size) in
+    malloc_common ~size_exp_opt:(Some size_expr)
+
+
+  (** TODO: by right, this should check for read on the argument first. *)
+  let strdup _ : model = 
+    malloc_common ~size_exp_opt: None
+
+
+  let c_mem_single_access_common (dest_addr, dest_hist) access_mode ~desc : model =
+    fun _ ~callee_procname:_ location ~ret:(ret_id, _) astate ->
+      let event = ValueHistory.Call {f= Model desc; location; in_call= []} in
+      let<*> astate, _ = 
+          PulseOperations.eval_access access_mode location (dest_addr, dest_hist) Dereference astate in
+      PulseOperations.write_id ret_id (dest_addr, event :: dest_hist) astate |> ok_continue
+
+
+  let c_mem_copy_common (dest_addr, dest_hist) (src_addr, src_hist) read_desc write_desc : model =
+    fun _ ~callee_procname:_ location ~ret:(ret_id, _) astate ->
+      let read_event = ValueHistory.Call {f= Model read_desc; location; in_call= []} in
+      let write_event = ValueHistory.Call {f= Model write_desc; location; in_call= []} in
+      let<*> astate, _ = 
+          PulseOperations.eval_access Read location (src_addr, src_hist) Dereference astate in
+      let<*> astate, _ = 
+          PulseOperations.eval_access Write location (dest_addr, dest_hist) Dereference astate in
+      let astate = PulseOperations.write_id ret_id (src_addr, read_event :: src_hist) astate in
+      let astate = PulseOperations.write_id ret_id (dest_addr, write_event :: dest_hist) astate in
+      ok_continue astate
+
+
+  let strlen (dest_addr, dest_hist) : model = 
+    c_mem_single_access_common (dest_addr, dest_hist) Read ~desc:"strlen()"
+
+  let memset (dest_addr, dest_hist) : model = 
+    c_mem_single_access_common (dest_addr, dest_hist) Write ~desc:"memset()"
+
+  let strcpy (dest_addr, dest_hist) (src_addr, src_hist) : model =
+    c_mem_copy_common (dest_addr, dest_hist) (src_addr, src_hist) "strcpy() read" "strcpy() write"
+
+  let strncpy (dest_addr, dest_hist) (src_addr, src_hist) _ : model = 
+    strcpy (dest_addr, dest_hist) (src_addr, src_hist)
 end
 
 module ObjCCoreFoundation = struct
@@ -1304,7 +1349,18 @@ module ProcNameDispatcher = struct
     make_dispatcher
       ( transfer_ownership_matchers @ abort_matchers
       @ [ +match_builtin BuiltinDecl.free <>$ capt_arg_payload $--> C.free
+        ; +match_regexp_opt Config.pulse_model_free_pattern <>$ capt_arg_payload $+...$--> C.free
         ; +match_builtin BuiltinDecl.malloc <>$ capt_exp $--> C.malloc
+        ; +match_regexp_opt Config.pulse_model_malloc_pattern <>$ capt_exp $+...$--> C.malloc
+        ; -"calloc" <>$ capt_exp $+ capt_exp $--> C.calloc
+        ; -"strdup" <>$ capt_exp $--> C.strdup
+        ; -"strlen" <>$ capt_arg_payload $+...$--> C.strlen
+        ; -"memset" <>$ capt_arg_payload $+...$--> C.memset
+        ; -"strcpy" <>$ capt_arg_payload $+ capt_arg_payload $+...$--> C.strcpy
+        ; -"strchr" <>$ capt_arg_payload $+ capt_arg_payload $+...$--> C.strcpy
+        ; -"strncpy" <>$ capt_arg_payload $+ capt_arg_payload $+ capt_exp $+...$--> C.strncpy
+        ; -"memcpy" <>$ capt_arg_payload $+ capt_arg_payload $+ capt_exp $+...$--> C.strncpy
+        ; -"memmove" <>$ capt_arg_payload $+ capt_arg_payload $+ capt_exp $+...$--> C.strncpy
         ; +match_builtin BuiltinDecl.__delete <>$ capt_arg_payload $--> Cplusplus.delete
         ; +match_builtin BuiltinDecl.__new <>$ capt_exp $--> Misc.alloc_not_null_call_ev ~desc:"new"
         ; +match_builtin BuiltinDecl.__new_array
