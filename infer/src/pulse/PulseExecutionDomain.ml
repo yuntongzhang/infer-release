@@ -18,7 +18,8 @@ module LatentIssue = PulseLatentIssue
 type 'abductive_domain_t base_t =
   | ContinueProgram of 'abductive_domain_t
   | ExitProgram of AbductiveDomain.summary
-  | AbortProgram of {astate: AbductiveDomain.summary; error_trace_start: Location.t}
+  | AbortProgram of 
+      {astate: AbductiveDomain.summary; error_trace_start: Location.t; error_trace_end: Location.t}
   | LatentAbortProgram of {astate: AbductiveDomain.summary; latent_issue: LatentIssue.t}
   | LatentInvalidAccess of
       { astate: AbductiveDomain.summary

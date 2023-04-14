@@ -41,6 +41,18 @@ let make_trace_element lt_level lt_loc lt_description lt_node_tags =
 (** Trace of locations *)
 type loc_trace = loc_trace_elem list
 
+
+let get_loc_trace_start (err_trace: loc_trace) = match err_trace with
+  | hd :: _ -> hd.lt_loc
+  | []      -> Location.dummy
+
+
+let rec get_loc_trace_end (err_trace: loc_trace) = match err_trace with
+  | x :: [] -> x.lt_loc
+  | _ :: x  -> get_loc_trace_end x
+  | []      -> Location.dummy
+
+
 let concat_traces labelled_traces =
   List.fold_right labelled_traces ~init:[] ~f:(fun labelled_trace res ->
       match labelled_trace with

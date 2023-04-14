@@ -127,8 +127,8 @@ let apply_callee tenv ~caller_proc_desc callee_pname call_loc callee_exec_state 
             match callee_exec_state with
             | ContinueProgram _ | ISLLatentMemoryError _ ->
                 assert false
-            | AbortProgram {error_trace_start} ->
-                Sat (Ok (AbortProgram {astate=astate_summary; error_trace_start}))
+            | AbortProgram {error_trace_start; error_trace_end} ->
+                Sat (Ok (AbortProgram {astate=astate_summary; error_trace_start; error_trace_end}))
             | ExitProgram _ ->
                 Sat (Ok (ExitProgram astate_summary))
             | LatentAbortProgram {latent_issue} -> (

@@ -76,6 +76,7 @@ let summary_error_of_error tenv proc_desc (error : AbductiveDomain.t AccessResul
       summary_of_error_post tenv proc_desc (fun astate -> ISLError astate) astate
 
 
+(* Extract the relevant trace information for AbortProgram here. *)
 let report_summary_error tenv proc_desc err_log
     (access_error : AbductiveDomain.summary AccessResult.error) : _ ExecutionDomain.base_t =
   match access_error with
@@ -92,19 +93,18 @@ let report_summary_error tenv proc_desc err_log
   | ISLError astate ->
       ISLLatentMemoryError astate
   | ReportableError {astate; diagnostic} -> (
-    let error_trace = Diagnostic.get_trace diagnostic in
-    let error_trace_start = match error_trace with
-      | hd :: _ -> hd.lt_loc
-      | [] -> Location.dummy
-    in
-    match LatentIssue.should_report astate diagnostic with
-    | `ReportNow ->
-        if not (is_suppressed tenv proc_desc diagnostic astate) then
-          report proc_desc err_log diagnostic ;
-          AbortProgram {astate; error_trace_start}
-    | `DelayReport latent_issue ->
-        if Config.pulse_report_latent_issues then report_latent_issue proc_desc err_log latent_issue ;
-        LatentAbortProgram {astate; latent_issue} )
+      let error_trace = Diagnostic.get_trace diagnostic in
+      let error_trace_start = Errlog.get_loc_trace_start error_trace in
+      let error_trace_end = Errlog.get_loc_trace_end error_trace in
+      match LatentIssue.should_report astate diagnostic with
+      | `ReportNow ->
+          if not (is_suppressed tenv proc_desc diagnostic astate) then
+            report proc_desc err_log diagnostic ;
+          AbortProgram {astate; error_trace_start; error_trace_end}
+      | `DelayReport latent_issue ->
+          if Config.pulse_report_latent_issues then
+            report_latent_issue proc_desc err_log latent_issue ;
+          LatentAbortProgram {astate; latent_issue} )
 
 
 let report_error tenv proc_desc err_log (access_error : AbductiveDomain.t AccessResult.error) =
@@ -122,14 +122,14 @@ let report_exec_results tenv proc_desc err_log results =
         | Unsat ->
             None
         | Sat exec_state ->
-            Some exec_state ) )
+            Some exec_state ))
 
 
 let report_results tenv proc_desc err_log results =
   let open IResult.Let_syntax in
   List.map results ~f:(fun result ->
       let+ astate = result in
-      ExecutionDomain.ContinueProgram astate )
+      ExecutionDomain.ContinueProgram astate)
   |> report_exec_results tenv proc_desc err_log
 
 

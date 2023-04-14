@@ -26,6 +26,14 @@ let get_start_location trace =
       get_outer_location trace
 
 
+let get_end_location trace =
+  match get_outer_history trace with
+    | event :: _ ->
+        ValueHistory.location_of_event event
+    | [] ->
+        get_outer_location trace
+
+
 let rec pp ~pp_immediate fmt trace =
   if Config.debug_level_analysis < 3 then pp_immediate fmt
   else
