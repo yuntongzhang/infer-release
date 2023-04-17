@@ -828,6 +828,13 @@ let get_last_line_in_trace abductive_summary =
   let line_num = FullTrace.get_last_loc trace in
   Option.value line_num ~default:0
 
+
+let add_new_trace_loc_to_summary (astate: summary) location =
+  let old_trace = astate.full_trace in
+  let new_trace = FullTrace.add_next_loc old_trace location in
+  { astate with full_trace=new_trace }
+
+
 let get_pre {pre} = (pre :> BaseDomain.t)
 
 let get_post {post} = (post :> BaseDomain.t)

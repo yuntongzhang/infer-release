@@ -100,5 +100,8 @@ let add_new_trace_loc exec_state location =
   | ContinueProgram astate ->
       let new_astate = AbductiveDomain.add_new_trace_loc astate location in
       ContinueProgram new_astate
+  | AbortProgram {astate; error_trace_start; error_trace_end} ->
+      let new_astate = AbductiveDomain.add_new_trace_loc_to_summary astate location in
+      AbortProgram {astate=new_astate; error_trace_start; error_trace_end}
   (** For state where summary is already extracted, there is no need to record exec trace anymore. *)
   | _ -> exec_state

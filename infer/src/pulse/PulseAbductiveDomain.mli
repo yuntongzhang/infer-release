@@ -202,6 +202,9 @@ val summary_of_post :
 
 val get_last_line_in_trace: summary -> int
 
+val add_new_trace_loc_to_summary : summary -> Location.t -> summary
+(** Add a new location to the full trace of the summary. *)
+
 val set_post_edges : AbstractValue.t -> BaseMemory.Edges.t -> t -> t
 (** directly set the edges for the given address, bypassing abduction altogether *)
 
